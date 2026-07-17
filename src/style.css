@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap');
 
 :root {
   color-scheme: dark;
@@ -19,11 +19,10 @@ html, body {
   height: 100%;
   background: var(--bg-deep);
   overflow: hidden;
-  font-family: 'VT323', 'Segoe UI', monospace;
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
   color: #eaf2ff;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
-  image-rendering: pixelated;
 }
 
 #app {
@@ -46,10 +45,9 @@ html, body {
 }
 
 #game-canvas {
-  border-radius: 4px;
+  border-radius: 8px;
   box-shadow: 0 0 0 3px #1c130b, 0 0 0 5px rgba(255, 178, 61, 0.3), 0 0 50px rgba(255, 178, 61, 0.15), 0 20px 60px rgba(0, 0, 0, 0.6);
   background: #0b0805;
-  image-rendering: pixelated;
 }
 
 #ui-layer {
@@ -76,7 +74,7 @@ html, body {
   padding: 10px 14px 0;
   pointer-events: none;
   z-index: 5;
-  font-family: 'VT323', monospace;
+  font-family: 'Rajdhani', sans-serif;
 }
 
 .hud-top {
@@ -272,11 +270,12 @@ html, body {
 }
 
 .logo {
-  font-family: 'Press Start 2P', 'VT323', monospace;
-  font-size: clamp(16px, 5.4vw, 25px);
-  line-height: 1.6;
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  font-size: clamp(28px, 8vw, 42px);
+  line-height: 1.25;
   margin: 0 0 10px;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: #fff;
   text-shadow: 0 0 20px var(--gold), 0 0 50px rgba(255, 210, 63, 0.4);
 }
@@ -294,29 +293,29 @@ html, body {
 }
 
 .menu-highscore {
-  font-family: 'VT323', monospace;
-  font-size: 18px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
   letter-spacing: 2px;
   color: var(--gold);
   margin-bottom: 22px;
 }
 
 .menu-highscore b {
-  font-size: 22px;
+  font-size: 16px;
   margin-left: 6px;
 }
 
 .btn {
-  font-family: 'VT323', monospace;
+  font-family: 'Cinzel', serif;
   display: block;
   width: 100%;
   padding: 14px 20px;
   margin: 10px 0;
-  border-radius: 6px;
+  border-radius: 8px;
   border: none;
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
@@ -341,9 +340,9 @@ html, body {
 
 .howto {
   margin-top: 20px;
-  font-size: 16px;
-  line-height: 1.7;
-  color: rgba(234, 242, 255, 0.55);
+  font-size: 14px;
+  line-height: 1.9;
+  color: rgba(234, 242, 255, 0.6);
   text-align: left;
 }
 
@@ -352,18 +351,19 @@ html, body {
 }
 
 .final-score {
-  font-family: 'Press Start 2P', 'VT323', monospace;
-  font-size: 30px;
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  font-size: 40px;
   color: #fff;
   text-shadow: 0 0 20px var(--gold);
-  margin: 18px 0 24px;
+  margin: 14px 0 22px;
 }
 
 .new-best {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--gold);
   letter-spacing: 2px;
-  margin-top: 8px;
+  margin-top: 6px;
   animation: pulse 0.7s infinite;
 }
 
@@ -406,11 +406,11 @@ html, body {
 }
 
 .touch-launch {
-  border-radius: 6px;
+  border-radius: 10px;
   width: 78px;
-  font-size: 14px;
+  font-size: 12px;
   letter-spacing: 1px;
-  font-family: 'VT323', monospace;
+  font-family: 'Cinzel', serif;
   margin-bottom: 40px;
 }
 

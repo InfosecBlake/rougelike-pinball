@@ -16,11 +16,8 @@ import {
   drawWaterDrip,
   drawDampTrail,
   drawPuddle,
-  drawPixelDisc,
-  drawPixelGrid,
   hashString,
   shade,
-  px,
   type DripEmitter
 } from "./PixelArt";
 
@@ -31,10 +28,6 @@ function poly(ctx: CanvasRenderingContext2D, pts: Vec2[]) {
   ctx.moveTo(pts[0].x, pts[0].y);
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
 }
-
-const FLAME_A = [".y..", "yoy.", "yory", ".oy."];
-const FLAME_B = [".o..", "yoy.", "yory", ".ry."];
-const FLAME_PALETTE: Record<string, string> = { y: "#fff2a8", o: "#ff9c2e", r: "#e6392f" };
 
 const DRIP_POINTS: { x: number; topY: number; bottomY: number }[] = [
   { x: 128, topY: 24, bottomY: 128 },
@@ -54,7 +47,6 @@ export class Renderer {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d")!;
-    this.ctx.imageSmoothingEnabled = false;
   }
 
   resize() {
@@ -69,7 +61,6 @@ export class Renderer {
     this.canvas.width = Math.round(cssW * this.dpr);
     this.canvas.height = Math.round(cssH * this.dpr);
     this.ctx.setTransform(this.dpr * scale, 0, 0, this.dpr * scale, 0, 0);
-    this.ctx.imageSmoothingEnabled = false;
   }
 
   private ensureTheme(theme: Theme) {
@@ -95,7 +86,7 @@ export class Renderer {
       ctx.translate((Math.random() - 0.5) * 6 * s, (Math.random() - 0.5) * 6 * s);
     }
 
-    this.drawBackground(theme);
+    this.drawBackground(theme, now);
     this.drawWaterDrips(now);
     this.drawWalls(theme);
     this.drawLauncher(game, theme);
@@ -104,7 +95,7 @@ export class Renderer {
     this.drawSpinner(game, theme);
     this.drawRollovers(game, theme, now);
     this.drawSlingshots(game);
-    this.drawBumpers(game, now);
+    this.drawBumpers(game, theme);
     this.drawFlipper(game.table.leftFlipper, theme);
     this.drawFlipper(game.table.rightFlipper, theme);
     this.drawBalls(game);
@@ -114,7 +105,7 @@ export class Renderer {
     ctx.restore();
   }
 
-  private drawBackground(theme: Theme) {
+  private drawBackground(theme: Theme, now: number) {
     const ctx = this.ctx;
     if (this.brickPattern) {
       ctx.fillStyle = this.brickPattern;
@@ -142,17 +133,19 @@ export class Renderer {
     }
 
     if (theme.starfield) {
-      // repurposed as drifting dust/spore motes for the dungeon atmosphere
+      // drifting dust/spore motes for atmosphere
       const rng = (i: number) => {
         const x = Math.sin(i * 12.9898) * 43758.5453;
         return x - Math.floor(x);
       };
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 34; i++) {
         const x = rng(i) * TABLE_WIDTH;
-        const y = rng(i + 99) * TABLE_HEIGHT;
-        ctx.globalAlpha = 0.1 + rng(i + 5) * 0.15;
+        const y = (rng(i + 99) * TABLE_HEIGHT + now / 260 + i * 40) % TABLE_HEIGHT;
+        ctx.globalAlpha = 0.08 + rng(i + 5) * 0.14;
         ctx.fillStyle = theme.accentB;
-        ctx.fillRect(px(x, 2), px(y, 2), 2, 2);
+        ctx.beginPath();
+        ctx.arc(x, y, 0.9, 0, Math.PI * 2);
+        ctx.fill();
       }
       ctx.globalAlpha = 1;
     }
@@ -169,38 +162,38 @@ export class Renderer {
 
   private stoneStroke(pts: Vec2[], color: string, width: number) {
     const ctx = this.ctx;
-    ctx.lineJoin = "miter";
-    ctx.lineCap = "square";
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
     poly(ctx, pts);
-    ctx.strokeStyle = shade(color, -0.4);
-    ctx.lineWidth = width + 3;
+    ctx.strokeStyle = shade(color, -0.45);
+    ctx.lineWidth = width + 2.5;
     ctx.stroke();
     poly(ctx, pts);
-    ctx.strokeStyle = color;
+    const grad = ctx.createLinearGradient(0, 0, 0, TABLE_HEIGHT);
+    grad.addColorStop(0, shade(color, 0.18));
+    grad.addColorStop(1, shade(color, -0.1));
+    ctx.strokeStyle = grad;
     ctx.lineWidth = width;
-    ctx.stroke();
-    poly(ctx, pts);
-    ctx.strokeStyle = shade(color, 0.25);
-    ctx.lineWidth = Math.max(1, width - 5);
     ctx.stroke();
   }
 
   private drawWalls(theme: Theme) {
     const rail = theme.rail;
-    this.stoneStroke(outerBoundary(), rail, 12);
-    this.stoneStroke(laneDivider(), rail, 9);
-    this.stoneStroke(laneFloor(), rail, 10);
-    this.stoneStroke(rightOutlaneGuide(), rail, 8);
-    this.stoneStroke(leftInlaneGuide(), rail, 7);
+    this.stoneStroke(outerBoundary(), rail, 11);
+    this.stoneStroke(laneDivider(), rail, 8);
+    this.stoneStroke(laneFloor(), rail, 9);
+    this.stoneStroke(rightOutlaneGuide(), rail, 7);
+    this.stoneStroke(leftInlaneGuide(), rail, 6);
 
-    // faint torchlight rim along the top arc only
+    // soft torchlight rim along the top arc
     const ctx = this.ctx;
     ctx.save();
     ctx.shadowColor = theme.glow;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 7;
     poly(ctx, outerBoundary());
     ctx.strokeStyle = theme.glow + "55";
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.3;
+    ctx.lineJoin = "round";
     ctx.stroke();
     ctx.restore();
   }
@@ -213,6 +206,7 @@ export class Renderer {
     ctx.save();
     ctx.strokeStyle = shade(theme.rail, 0.3);
     ctx.lineWidth = 4;
+    ctx.lineCap = "round";
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
       const y = baseY - i * 7;
@@ -229,70 +223,81 @@ export class Renderer {
     }
   }
 
-  private drawBumpers(game: Game, now: number) {
+  /** Classic glossy pop-bumper: metal bezel, domed cap, bright light-ring when lit. */
+  private drawBumpers(game: Game, theme: Theme) {
     const ctx = this.ctx;
     for (const b of game.table.bumpers) {
       const r = (b.body as any).circleRadius ?? 24;
       const pos = b.body.position;
-      const jitter = hashString(b.id) % 100;
+      const lit = b.lit || b.flash > 0;
+      const capColor = b.flash > 0 ? "#ffffff" : lit ? theme.accentA : "#4a4038";
 
-      // stone sconce base
-      drawPixelDisc(ctx, pos.x, pos.y, r, b.flash > 0 ? "#e8dcc8" : "#4a4038", 10, "#1c1710");
+      ctx.save();
+      // metal bezel
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = shade(theme.rail, -0.35);
+      ctx.lineWidth = 4;
+      ctx.stroke();
 
-      if (b.lit || b.flash > 0) {
-        ctx.save();
-        ctx.translate(pos.x, pos.y - r * 0.55);
-        const flicker = Math.sin(now / 90 + jitter) > 0;
-        const unit = Math.max(2, Math.round(r / 4));
-        ctx.shadowColor = "#ff9c2e";
-        ctx.shadowBlur = 6 + b.flash * 14;
-        drawPixelGrid(ctx, flicker ? FLAME_A : FLAME_B, FLAME_PALETTE, unit);
-        ctx.restore();
-      } else {
-        // cold, unlit ember
-        ctx.save();
-        ctx.fillStyle = "#3a2418";
-        ctx.fillRect(px(pos.x - 2, 2), px(pos.y - r * 0.5, 2), 4, 3);
-        ctx.restore();
+      // glossy dome
+      const grad = ctx.createRadialGradient(pos.x - r * 0.35, pos.y - r * 0.35, r * 0.15, pos.x, pos.y, r);
+      grad.addColorStop(0, shade(capColor, 0.55));
+      grad.addColorStop(0.55, capColor);
+      grad.addColorStop(1, shade(capColor, -0.35));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // light ring
+      if (lit) {
+        ctx.shadowColor = theme.accentA;
+        ctx.shadowBlur = 8 + b.flash * 18;
+        ctx.strokeStyle = shade(theme.accentA, 0.4);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, r * 0.86, 0, Math.PI * 2);
+        ctx.stroke();
       }
+      ctx.restore();
     }
   }
 
+  /** Classic triangular slingshot kicker with a rubber-band highlight edge. */
   private drawSlingshots(game: Game) {
     const ctx = this.ctx;
     for (const s of game.table.slingshots) {
       const verts = (s.body.vertices ?? []) as Vec2[];
       if (!verts.length) continue;
       const hit = s.flash > 0;
+      const cx = (verts[0].x + verts[1].x + verts[2].x) / 3;
+      const cy = (verts[0].y + verts[1].y + verts[2].y) / 3;
+
       ctx.save();
       poly(ctx, verts);
       ctx.closePath();
-      ctx.fillStyle = hit ? "#ffffff" : "#7a1620";
+      const grad = ctx.createLinearGradient(verts[0].x, verts[0].y, cx, cy);
+      grad.addColorStop(0, hit ? "#ffffff" : "#e6485a");
+      grad.addColorStop(1, hit ? "#ffe0e0" : "#8a1a28");
+      ctx.fillStyle = grad;
+      ctx.shadowColor = hit ? "#ffffff" : "#e6485a";
+      ctx.shadowBlur = hit ? 14 : 4;
       ctx.fill();
-      // jagged spike teeth along the top edge
-      const [a, b] = verts;
-      const steps = 5;
-      ctx.fillStyle = hit ? "#ffe0e0" : "#c73a45";
-      for (let i = 0; i < steps; i++) {
-        const t0 = i / steps;
-        const t1 = (i + 0.5) / steps;
-        const x0 = a.x + (b.x - a.x) * t0;
-        const y0 = a.y + (b.y - a.y) * t0;
-        const xm = a.x + (b.x - a.x) * t1;
-        const ym = a.y + (b.y - a.y) * t1;
-        const x2 = a.x + (b.x - a.x) * ((i + 1) / steps);
-        const y2 = a.y + (b.y - a.y) * ((i + 1) / steps);
-        ctx.beginPath();
-        ctx.moveTo(x0, y0);
-        ctx.lineTo(xm - (ym - y0) * 0.3, ym + (xm - x0) * 0.3);
-        ctx.lineTo(x2, y2);
-        ctx.closePath();
-        ctx.fill();
-      }
+
+      // rubber-band trim along the top edge
+      ctx.beginPath();
+      ctx.moveTo(verts[0].x, verts[0].y);
+      ctx.lineTo(verts[1].x, verts[1].y);
+      ctx.strokeStyle = hit ? "#ffffff" : "#ffb3bc";
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.stroke();
       ctx.restore();
     }
   }
 
+  /** Classic reflective spinner blade on a metal axle. */
   private drawSpinner(game: Game, theme: Theme) {
     const spinner = game.table.spinner;
     if (!spinner) return;
@@ -301,16 +306,25 @@ export class Renderer {
     ctx.translate(spinner.pos.x, spinner.pos.y);
     ctx.rotate(spinner.angle + Math.sin(spinner.spinAngle) * 1.4);
     const half = spinner.length / 2;
-    const unit = 3;
-    ctx.fillStyle = shade(theme.accentA, -0.1);
-    ctx.fillRect(px(-half, unit), -3, px(spinner.length, unit), 6);
-    ctx.fillStyle = shade(theme.accentA, 0.3);
-    ctx.fillRect(px(-half, unit), -3, px(spinner.length, unit), 2);
-    ctx.fillStyle = "#1c1710";
-    ctx.fillRect(-3, -5, 6, 10);
+    const grad = ctx.createLinearGradient(-half, 0, half, 0);
+    grad.addColorStop(0, shade(theme.accentA, -0.3));
+    grad.addColorStop(0.5, shade(theme.accentA, 0.45));
+    grad.addColorStop(1, shade(theme.accentA, -0.3));
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(-half, 0);
+    ctx.lineTo(half, 0);
+    ctx.stroke();
+    ctx.fillStyle = shade(theme.rail, -0.3);
+    ctx.beginPath();
+    ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
+  /** Classic upright plastic drop target with a beveled highlight. */
   private drawDropTargets(game: Game, theme: Theme) {
     const bank = game.table.dropBank;
     if (!bank) return;
@@ -322,36 +336,51 @@ export class Renderer {
       ctx.rotate(t.angle);
       const w = t.width;
       const h = t.height;
-      ctx.fillStyle = "#241a10";
-      ctx.fillRect(-w / 2 - 1, -h / 2 - 1, w + 2, h + 2);
-      ctx.fillStyle = shade("#8a6a42", -0.1);
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.fillRect(-w / 2 - 1, -h / 2 - 1 + 1.5, w + 2, h + 2);
+      const grad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
+      grad.addColorStop(0, shade(theme.accentA, 0.35));
+      grad.addColorStop(1, shade(theme.accentA, -0.25));
+      ctx.fillStyle = grad;
       ctx.fillRect(-w / 2, -h / 2, w, h);
-      ctx.fillStyle = shade("#8a6a42", 0.25);
-      ctx.fillRect(-w / 2, -h / 2, w, 2);
-      ctx.fillStyle = theme.accentA;
-      ctx.globalAlpha = 0.5;
-      ctx.fillRect(-w / 2, -h / 2, w, h);
-      ctx.globalAlpha = 1;
+      ctx.strokeStyle = shade(theme.accentA, -0.5);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-w / 2, -h / 2, w, h);
       ctx.restore();
     }
   }
 
+  /** Classic glowing plastic ramp track, rendered as a smooth lit tube. */
   private drawRamp(game: Game, theme: Theme) {
     const ramp = game.table.ramp;
     if (!ramp) return;
     const ctx = this.ctx;
-    const steps = 16;
-    const stepUnit = 6;
+    const pts: Vec2[] = [];
+    for (let i = 0; i <= 24; i++) pts.push(ramp.pointAt(i / 24));
+    const glowColor = ramp.flash > 0 ? "#ffffff" : theme.accentC;
+
     ctx.save();
-    for (let i = 0; i < steps; i++) {
-      const p = ramp.pointAt(i / steps);
-      const glow = ramp.flash > 0 ? "#ffffff" : shade(theme.accentC, -0.1 + (i % 2) * 0.12);
-      ctx.fillStyle = shade(glow, -0.35);
-      ctx.fillRect(px(p.x - stepUnit, 2) - 1, px(p.y - 3, 2) - 1, stepUnit + 2, 6);
-      ctx.fillStyle = glow;
-      ctx.fillRect(px(p.x - stepUnit, 2), px(p.y - 3, 2), stepUnit, 4);
-    }
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    poly(ctx, pts);
+    ctx.strokeStyle = shade(glowColor, -0.5);
+    ctx.lineWidth = 9;
+    ctx.stroke();
+
+    poly(ctx, pts);
+    ctx.shadowColor = glowColor;
+    ctx.shadowBlur = 6 + ramp.flash * 18;
+    ctx.strokeStyle = glowColor;
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    poly(ctx, pts);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = shade(glowColor, 0.5);
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.restore();
+
     ctx.save();
     ctx.beginPath();
     ctx.arc(ramp.def.entry.x, ramp.def.entry.y, ramp.def.entryRadius ?? 20, 0, Math.PI * 2);
@@ -363,80 +392,101 @@ export class Renderer {
     ctx.restore();
   }
 
+  /** Classic round flush lane-light insert. */
   private drawRollovers(game: Game, theme: Theme, now: number) {
     const ctx = this.ctx;
     const skillActive = game.skillShotDeadline > 0 && now <= game.skillShotDeadline;
     for (const r of game.table.rollovers) {
       const isSkillLit = r.skillShot && skillActive && r.lit;
       const color = r.lit ? (isSkillLit ? "#ffd23f" : theme.accentB) : "#2a2a30";
+      const pos = r.body.position;
       ctx.save();
-      ctx.translate(r.body.position.x, r.body.position.y);
       if (r.lit) {
         ctx.shadowColor = color;
-        ctx.shadowBlur = 8 + r.flash * 14;
+        ctx.shadowBlur = 9 + r.flash * 14;
       }
-      ctx.fillStyle = shade(color, -0.4);
+      const grad = ctx.createRadialGradient(pos.x, pos.y, 1, pos.x, pos.y, 9);
+      grad.addColorStop(0, shade(color, 0.5));
+      grad.addColorStop(1, color);
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.moveTo(0, -9);
-      ctx.lineTo(9, 0);
-      ctx.lineTo(0, 9);
-      ctx.lineTo(-9, 0);
-      ctx.closePath();
+      ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(0, -6);
-      ctx.lineTo(6, 0);
-      ctx.lineTo(0, 6);
-      ctx.lineTo(-6, 0);
-      ctx.closePath();
-      ctx.fill();
+      ctx.strokeStyle = shade(color, -0.4);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
       ctx.restore();
     }
   }
 
+  /** Classic glossy plastic flipper paddle with a metal pivot cap. */
   private drawFlipper(flipper: Game["table"]["leftFlipper"], theme: Theme) {
     const ctx = this.ctx;
     const b = flipper.body;
-    const dir = flipper.side === "left" ? 1 : -1;
     ctx.save();
     ctx.translate(b.position.x, b.position.y);
     ctx.rotate(b.angle);
     const len = flipper.length;
-    const unit = 3;
 
-    // tapered pixel club: narrow at the pivot end, wide at the striking tip
-    ctx.fillStyle = "#1c1710";
-    ctx.fillRect(px(-len / 2 - 2, unit), -12, px(len + 4, unit), 24);
-    const segments = 8;
-    for (let i = 0; i < segments; i++) {
-      const t0 = i / segments;
-      const segW = len / segments;
-      const x = -len / 2 + i * segW;
-      const taperT = dir > 0 ? t0 : 1 - t0;
-      const halfH = 6 + taperT * 4;
-      ctx.fillStyle = shade(theme.accentA, -0.15 + (i % 2) * 0.06);
-      ctx.fillRect(px(x, unit), -halfH, px(segW + 1, unit), halfH * 2);
-    }
-    ctx.fillStyle = shade(theme.accentA, 0.3);
-    ctx.fillRect(px(-len / 2, unit), -3, px(len, unit), 2);
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.beginPath();
+    ctx.roundRect(-len / 2, -10, len, 21, 10);
+    ctx.fill();
+
+    const grad = ctx.createLinearGradient(0, -10, 0, 10);
+    grad.addColorStop(0, shade(theme.accentA, 0.45));
+    grad.addColorStop(0.55, theme.accentA);
+    grad.addColorStop(1, shade(theme.accentA, -0.35));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(-len / 2, -10, len, 20, 10);
+    ctx.fill();
+
+    ctx.fillStyle = shade(theme.accentA, 0.6);
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.roundRect(-len / 2 + 3, -7, len - 6, 3, 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    const pivotX = flipper.side === "left" ? -len / 2 : len / 2;
+    ctx.fillStyle = shade(theme.rail, -0.2);
+    ctx.beginPath();
+    ctx.arc(pivotX, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = shade(theme.rail, 0.3);
+    ctx.beginPath();
+    ctx.arc(pivotX, 0, 2.5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
+  /** Classic chrome pinball with a smooth motion trail. */
   private drawBalls(game: Game) {
     const ctx = this.ctx;
     for (const ball of game.balls) {
       for (let i = ball.trail.length - 1; i >= 0; i--) {
         const p = ball.trail[i];
         const alpha = (1 - i / ball.trail.length) * 0.22;
-        const s = BALL_RADIUS * (1 - i / ball.trail.length) * 1.6;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = "#cfe3ff";
-        ctx.fillRect(px(p.x - s / 2, 2), px(p.y - s / 2, 2), px(s, 2), px(s, 2));
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(200,225,255,${alpha})`;
+        ctx.arc(p.x, p.y, BALL_RADIUS * (1 - i / ball.trail.length) * 0.9, 0, Math.PI * 2);
+        ctx.fill();
       }
-      ctx.globalAlpha = 1;
       const pos = ball.body.position;
-      drawPixelDisc(ctx, pos.x, pos.y, BALL_RADIUS, "#b9c4d6", 8, "#12161d");
+      const grad = ctx.createRadialGradient(pos.x - 3, pos.y - 3, 1, pos.x, pos.y, BALL_RADIUS);
+      grad.addColorStop(0, "#ffffff");
+      grad.addColorStop(0.5, "#cfe3ff");
+      grad.addColorStop(1, "#69809f");
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, BALL_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
@@ -447,10 +497,10 @@ export class Renderer {
       const t = age / 1100;
       ctx.save();
       ctx.globalAlpha = Math.max(0, 1 - t);
-      ctx.font = "10px 'Press Start 2P', monospace";
+      ctx.font = "700 15px 'Cinzel', serif";
       ctx.textAlign = "center";
       const y = p.y - t * 34;
-      ctx.fillStyle = "#000000";
+      ctx.fillStyle = "rgba(0,0,0,0.8)";
       ctx.fillText(p.text, p.x + 1, y + 1);
       ctx.fillStyle = p.color;
       ctx.fillText(p.text, p.x, y);
