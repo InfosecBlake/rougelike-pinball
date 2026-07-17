@@ -82,14 +82,17 @@ export function leftInlaneGuide(): Vec2[] {
   ];
 }
 
+// Kept well clear of each flipper's rotational sweep (pivot radius ~96.5px,
+// angle roughly -67deg to +56deg) — anything inside that arc jams the
+// flipper against the slingshot's static body instead of letting it swing.
 export function slingshotDefs(): SlingshotDef[] {
   return [
     {
       id: "sling-left",
       points: [
-        { x: 120, y: 760 },
-        { x: 160, y: 690 },
-        { x: 206, y: 772 }
+        { x: 105, y: 695 },
+        { x: 162, y: 635 },
+        { x: 222, y: 715 }
       ],
       score: 60,
       pushDir: { x: 0.5, y: -0.9 }
@@ -97,9 +100,9 @@ export function slingshotDefs(): SlingshotDef[] {
     {
       id: "sling-right",
       points: [
-        { x: 380, y: 760 },
-        { x: 340, y: 690 },
-        { x: 294, y: 772 }
+        { x: 395, y: 695 },
+        { x: 338, y: 635 },
+        { x: 278, y: 715 }
       ],
       score: 60,
       pushDir: { x: -0.5, y: -0.9 }

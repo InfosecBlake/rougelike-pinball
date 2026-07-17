@@ -65,7 +65,7 @@ export class Renderer {
     this.drawSpinner(game, theme);
     this.drawRollovers(game, theme, now);
     this.drawSlingshots(game);
-    this.drawBumpers(game);
+    this.drawBumpers(game, theme);
     this.drawFlipper(game.table.leftFlipper, theme);
     this.drawFlipper(game.table.rightFlipper, theme);
     this.drawBalls(game);
@@ -152,24 +152,24 @@ export class Renderer {
     }
   }
 
-  private drawBumpers(game: Game) {
+  private drawBumpers(game: Game, theme: Game["table"]["def"]["theme"]) {
     const ctx = this.ctx;
     for (const b of game.table.bumpers) {
       const r = (b.body as any).circleRadius ?? 24;
       const pos = b.body.position;
       const glow = 10 + b.flash * 22;
       ctx.save();
-      ctx.shadowColor = "#39e6ff";
+      ctx.shadowColor = theme.accentA;
       ctx.shadowBlur = glow;
       const grad = ctx.createRadialGradient(pos.x, pos.y, r * 0.1, pos.x, pos.y, r);
-      grad.addColorStop(0, b.flash > 0 ? "#ffffff" : "#2a3a6b");
-      grad.addColorStop(1, b.lit ? "#7cf9d0" : "#1c2a5e");
+      grad.addColorStop(0, b.flash > 0 ? "#ffffff" : "#241a10");
+      grad.addColorStop(1, b.lit ? theme.accentA : "#241a10");
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.lineWidth = 3;
-      ctx.strokeStyle = "#39e6ff";
+      ctx.strokeStyle = theme.accentA;
       ctx.stroke();
       ctx.restore();
     }
@@ -183,8 +183,8 @@ export class Renderer {
       ctx.save();
       poly(ctx, verts);
       ctx.closePath();
-      ctx.fillStyle = s.flash > 0 ? "#ffffff" : "#ff3b6e";
-      ctx.shadowColor = "#ff3b6e";
+      ctx.fillStyle = s.flash > 0 ? "#ffffff" : "#e63950";
+      ctx.shadowColor = "#e63950";
       ctx.shadowBlur = 8 + s.flash * 20;
       ctx.globalAlpha = 0.85;
       ctx.fill();

@@ -2,17 +2,17 @@ import type { LevelDef } from "./types";
 
 export const level4: LevelDef = {
   id: 4,
-  title: "Violet Cascade",
-  subtitle: "Run the ramp 5 times",
+  title: "Shadow Sanctum",
+  subtitle: "Ascend the spire stairs 5 times",
   theme: {
-    name: "violet-cascade",
+    name: "shadow-sanctum",
     playfield: "#160a2e",
     playfieldAccent: "#241141",
     rail: "#3c1c66",
-    glow: "#b969ff",
-    accentA: "#b969ff",
-    accentB: "#ff5fd1",
-    accentC: "#39e6ff",
+    glow: "#a86bff",
+    accentA: "#a86bff",
+    accentB: "#6be3ff",
+    accentC: "#e8dcc8",
     starfield: true
   },
   bumpers: [
@@ -34,8 +34,8 @@ export const level4: LevelDef = {
     exitVelocity: { x: -3.2, y: 2.4 },
     minEntrySpeed: 8.5,
     score: 800,
-    label: "SPIRE RAMP"
+    label: "SPIRE STAIRS"
   },
-  rollovers: [{ id: "r1", pos: { x: 118, y: 172 }, score: 500, label: "TOP", skillShot: true }],
-  objective: { type: "run-ramp", target: 5, label: "Run the spire ramp 5 times" }
+  rollovers: [{ id: "r1", pos: { x: 118, y: 172 }, score: 500, label: "RUNE", skillShot: true }],
+  objective: { type: "run-ramp", target: 5, label: "Ascend the spire stairs 5 times" }
 };

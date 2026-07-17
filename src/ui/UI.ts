@@ -62,7 +62,7 @@ export class UIManager {
     this.hud.innerHTML = `
       <div class="hud-top">
         <div class="hud-block">
-          <div class="hud-label">SCORE</div>
+          <div class="hud-label">GOLD</div>
           <div class="hud-score" id="score">0</div>
         </div>
         <div class="hud-block hud-block-right">
@@ -71,20 +71,20 @@ export class UIManager {
         </div>
       </div>
       <div class="hud-mid">
-        <div class="hud-level" id="level">LEVEL 1</div>
+        <div class="hud-level" id="level">CHAMBER 1</div>
         <div class="hud-objective">
           <span id="objective-label">—</span>
           <div class="objective-bar"><div class="objective-bar-fill" id="objective-fill"></div></div>
         </div>
       </div>
       <div class="hud-chips">
-        <div class="chip chip-skill" id="chip-skill">SKILL SHOT</div>
-        <div class="chip chip-multiball" id="chip-multiball">MULTIBALL READY</div>
+        <div class="chip chip-skill" id="chip-skill">FIRST STRIKE</div>
+        <div class="chip chip-multiball" id="chip-multiball">HORDE READY</div>
       </div>
       <div class="hud-bottom">
         <div class="hud-balls" id="balls"></div>
         <div class="hud-combo" id="combo">x1</div>
-        <div class="tilt-meter"><div class="tilt-fill" id="tilt-fill"></div><span>TILT</span></div>
+        <div class="tilt-meter"><div class="tilt-fill" id="tilt-fill"></div><span>TREMOR</span></div>
       </div>
     `;
     root.appendChild(this.hud);
@@ -106,14 +106,14 @@ export class UIManager {
       "screen menu-screen",
       `
       <div class="screen-card">
-        <h1 class="logo">NEON<span>CASCADE</span></h1>
-        <p class="tagline">A sleek 5-table pinball run</p>
-        <div class="menu-highscore">BEST <b id="menu-highscore">0</b></div>
-        <button class="btn btn-primary" id="btn-start">START GAME</button>
+        <h1 class="logo">DUNGEON <span>PINBALL</span></h1>
+        <p class="tagline">A torch-lit descent through 5 cursed chambers</p>
+        <div class="menu-highscore">BEST HOARD <b id="menu-highscore">0</b></div>
+        <button class="btn btn-primary" id="btn-start">ENTER THE DUNGEON</button>
         <div class="howto">
           <div><b>&larr; / Z</b> left flipper &nbsp; <b>&rarr; / X</b> right flipper</div>
-          <div><b>Hold Space</b> to charge launch, release to fire</div>
-          <div><b>A / D / W</b> nudge the table &mdash; too much and you'll tilt</div>
+          <div><b>Hold Space</b> to charge your strike, release to launch</div>
+          <div><b>A / D / W</b> shake the chamber &mdash; too much and it will tremor</div>
         </div>
         <button class="btn btn-ghost" id="btn-mute">🔊 SOUND ON</button>
       </div>
@@ -147,7 +147,7 @@ export class UIManager {
     this.gameOverScreen.querySelector("#btn-restart")!.addEventListener("click", () => this.cb.onRestart());
 
     // --- Pause ---
-    this.pauseScreen = el("div", "screen pause-screen hidden", `<div class="screen-card"><h1 class="logo">PAUSED</h1><p class="tagline">Press P or Esc to resume</p></div>`);
+    this.pauseScreen = el("div", "screen pause-screen hidden", `<div class="screen-card"><h1 class="logo">RESTING</h1><p class="tagline">Press P or Esc to continue the descent</p></div>`);
     root.appendChild(this.pauseScreen);
 
     // --- Touch controls ---
@@ -193,8 +193,8 @@ export class UIManager {
   }
 
   showGameOver(win: boolean, score: number, highScore: number, isNew: boolean) {
-    this.gameOverTitle.textContent = win ? "CORE OVERLOADED" : "GAME OVER";
-    this.gameOverScore.innerHTML = `${score.toLocaleString()}${isNew ? '<div class="new-best">NEW BEST!</div>' : ""}<div class="hud-label">BEST ${highScore.toLocaleString()}</div>`;
+    this.gameOverTitle.textContent = win ? "THE HOARD IS YOURS" : "YOU HAVE FALLEN";
+    this.gameOverScore.innerHTML = `${score.toLocaleString()}${isNew ? '<div class="new-best">NEW LEGEND!</div>' : ""}<div class="hud-label">BEST ${highScore.toLocaleString()}</div>`;
     this.gameOverScreen.classList.remove("hidden");
   }
   hideGameOver() {
@@ -208,7 +208,7 @@ export class UIManager {
   update(d: HudData) {
     this.scoreEl.textContent = d.score.toLocaleString();
     this.highScoreEl.textContent = d.highScore.toLocaleString();
-    this.levelEl.textContent = `LEVEL ${d.level} / ${d.levelCount} — ${d.levelTitle}`;
+    this.levelEl.textContent = `CHAMBER ${d.level} / ${d.levelCount} — ${d.levelTitle}`;
     this.objectiveLabelEl.textContent = `${d.objectiveLabel} (${d.objectiveProgress}/${d.objectiveTarget})`;
     const pct = d.objectiveTarget > 0 ? Math.min(100, (d.objectiveProgress / d.objectiveTarget) * 100) : 0;
     this.objectiveBarFill.style.width = `${pct}%`;

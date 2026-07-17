@@ -257,7 +257,7 @@ export class Game {
     this.table.rightFlipper.setPressed(false);
     this.comboChain = 0;
     this.sfx.tilt();
-    this.addPopup("TILT!", this.table.def.bumpers[0]?.pos ?? { x: 260, y: 400 }, "#ff3b6e");
+    this.addPopup("TREMOR!", this.table.def.bumpers[0]?.pos ?? { x: 260, y: 400 }, "#e63950");
   }
 
   // ---------- fixed update ----------
@@ -368,7 +368,7 @@ export class Game {
           if (!wasAllDropped && bank.allDropped) {
             this.dropClears++;
             this.awardScore(bank.bonus, ball.position);
-            this.addPopup(`BANK CLEARED +${bank.bonus}`, ball.position, "#ffd23f");
+            this.addPopup(`WALL SHATTERED +${bank.bonus}`, ball.position, "#ffd23f");
           }
           this.checkObjective(now);
         }
@@ -393,7 +393,7 @@ export class Game {
         let points = rollover.score;
         if (rollover.skillShot && this.skillShotDeadline > 0 && now <= this.skillShotDeadline) {
           points += 2000;
-          this.addPopup("SKILL SHOT!", rollover.body.position, "#7cf9d0");
+          this.addPopup("FIRST STRIKE!", rollover.body.position, "#ffcf5c");
           this.skillShotDeadline = 0;
         }
         this.awardScore(points, rollover.body.position);
@@ -402,7 +402,7 @@ export class Game {
         if (this.multiballProgress >= MULTIBALL_ROLLOVER_TARGET && !this.multiballReady) {
           this.multiballReady = true;
           this.multiballProgress = 0;
-          this.addPopup("MULTIBALL READY", rollover.body.position, "#39e6ff");
+          this.addPopup("HORDE READY", rollover.body.position, "#a86bff");
         }
         break;
       }
@@ -429,7 +429,7 @@ export class Game {
   private triggerMultiball(now: number) {
     this.multiballReady = false;
     this.sfx.multiball();
-    this.addPopup("MULTIBALL!", { x: 250, y: 260 }, "#ff5fd1");
+    this.addPopup("HORDE UNLEASHED!", { x: 250, y: 260 }, "#ff5a3d");
     this.spawnBall({ x: 220, y: 210 });
     this.spawnBall({ x: 290, y: 210 });
     const b1 = this.balls[this.balls.length - 2];
@@ -450,7 +450,7 @@ export class Game {
 
     if (this.ballSaveAvailable && now <= this.ballSaveDeadline) {
       this.ballSaveAvailable = false;
-      this.addPopup("BALL SAVED", LAUNCHER_BALL_START, "#39e6ff");
+      this.addPopup("SANCTUARY!", LAUNCHER_BALL_START, "#ffd23f");
       this.sfx.ballSave();
       this.state = "serve";
       this.tilted = false;
@@ -485,7 +485,7 @@ export class Game {
       this.ballsRemaining++;
       this.nextExtraBallScore += EXTRA_BALL_STEP;
       this.sfx.extraBall();
-      this.addPopup("EXTRA BALL!", pos ?? { x: 250, y: 300 }, "#7cf9d0");
+      this.addPopup("BONUS LIFE!", pos ?? { x: 250, y: 300 }, "#8ee666");
     }
   }
 
@@ -523,7 +523,7 @@ export class Game {
     this.levelCompleteAt = now;
     this.sfx.levelComplete();
     this.score += LEVEL_CLEAR_BONUS;
-    this.addPopup(`LEVEL CLEAR +${LEVEL_CLEAR_BONUS}`, { x: 250, y: 300 }, "#ffd23f");
+    this.addPopup(`CHAMBER CLEARED +${LEVEL_CLEAR_BONUS}`, { x: 250, y: 300 }, "#ffd23f");
   }
 
   private advanceLevel() {

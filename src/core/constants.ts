@@ -29,7 +29,7 @@ export const COLORS = {
 };
 
 export const STORAGE_KEYS = {
-  highScore: "neon-pinball.highscore"
+  highScore: "dungeon-pinball.highscore"
 };
 
 export const BALLS_PER_GAME = 3;

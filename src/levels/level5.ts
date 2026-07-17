@@ -2,17 +2,17 @@ import type { LevelDef } from "./types";
 
 export const level5: LevelDef = {
   id: 5,
-  title: "Nova Core",
-  subtitle: "Score 15,000 to overload the core",
+  title: "Dragon's Hoard",
+  subtitle: "Plunder 15,000 gold to wake the dragon",
   theme: {
-    name: "nova-core",
-    playfield: "#08040a",
-    playfieldAccent: "#170a1f",
-    rail: "#341845",
-    glow: "#ffffff",
-    accentA: "#ffffff",
-    accentB: "#39e6ff",
-    accentC: "#ff5fd1",
+    name: "dragons-hoard",
+    playfield: "#0a0605",
+    playfieldAccent: "#1f0f08",
+    rail: "#4a2410",
+    glow: "#ffd23f",
+    accentA: "#ffd23f",
+    accentB: "#ff5a3d",
+    accentC: "#b969ff",
     starfield: true
   },
   bumpers: [
@@ -21,14 +21,14 @@ export const level5: LevelDef = {
     { id: "b3", pos: { x: 340, y: 300 }, radius: 22, score: 150 }
   ],
   spinner: {
-    id: "core-gate",
+    id: "hoard-wheel",
     pos: { x: 250, y: 430 },
     length: 80,
     angle: -0.45,
     score: 90
   },
   dropBank: {
-    id: "core-bank",
+    id: "vault-wall",
     bonus: 4000,
     targets: [
       { id: "t1", pos: { x: 170, y: 590 } },
@@ -37,7 +37,7 @@ export const level5: LevelDef = {
     ]
   },
   ramp: {
-    id: "overload-ramp",
+    id: "dragon-stair",
     entry: { x: 400, y: 600 },
     entryRadius: 24,
     path: [
@@ -51,11 +51,11 @@ export const level5: LevelDef = {
     exitVelocity: { x: -3, y: 2.2 },
     minEntrySpeed: 8.5,
     score: 900,
-    label: "OVERLOAD RAMP"
+    label: "VAULT STAIRS"
   },
   rollovers: [
-    { id: "r1", pos: { x: 118, y: 172 }, score: 600, label: "TOP", skillShot: true },
-    { id: "r2", pos: { x: 382, y: 172 }, score: 600, label: "TOP" }
+    { id: "r1", pos: { x: 118, y: 172 }, score: 600, label: "RUNE", skillShot: true },
+    { id: "r2", pos: { x: 382, y: 172 }, score: 600, label: "RUNE" }
   ],
-  objective: { type: "grand-finale", target: 15000, label: "Score 15,000 points to overload the core" }
+  objective: { type: "grand-finale", target: 15000, label: "Plunder 15,000 gold to wake the dragon" }
 };
