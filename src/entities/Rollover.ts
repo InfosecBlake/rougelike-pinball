@@ -8,7 +8,7 @@ export class Rollover {
   score: number;
   label: string;
   skillShot: boolean;
-  lit = true;
+  lit: boolean;
   flash = 0;
 
   constructor(def: RolloverDef) {
@@ -16,6 +16,7 @@ export class Rollover {
     this.score = def.score;
     this.label = def.label;
     this.skillShot = !!def.skillShot;
+    this.lit = def.lit ?? true;
     this.body = Matter.Bodies.circle(def.pos.x, def.pos.y, def.radius ?? 11, {
       isStatic: true,
       isSensor: true,

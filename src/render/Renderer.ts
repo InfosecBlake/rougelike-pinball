@@ -91,7 +91,8 @@ export class Renderer {
     this.drawWalls(theme);
     this.drawLauncher(game, theme);
     this.drawDropTargets(game, theme);
-    this.drawRamp(game, theme);
+    this.drawStandupBanks(game, theme);
+    this.drawRamps(game, theme);
     this.drawSpinner(game, theme);
     this.drawRollovers(game, theme, now);
     this.drawSlingshots(game);
@@ -225,43 +226,71 @@ export class Renderer {
 
   /** Classic glossy pop-bumper: metal bezel, domed cap, bright light-ring when lit. */
   private drawBumpers(game: Game, theme: Theme) {
+    for (const b of game.table.bumpers) this.drawBumper(b, theme, false);
+    if (game.table.keeper) this.drawBumper(game.table.keeper, theme, true);
+  }
+
+  private drawBumper(b: Game["table"]["bumpers"][number], theme: Theme, isKeeper: boolean) {
     const ctx = this.ctx;
-    for (const b of game.table.bumpers) {
-      const r = (b.body as any).circleRadius ?? 24;
-      const pos = b.body.position;
-      const lit = b.lit || b.flash > 0;
-      const capColor = b.flash > 0 ? "#ffffff" : lit ? theme.accentA : "#4a4038";
+    const r = (b.body as any).circleRadius ?? 24;
+    const pos = b.body.position;
+    const lit = b.lit || b.flash > 0;
+    const bossColor = isKeeper ? "#c73a45" : theme.accentA;
+    const capColor = b.flash > 0 ? "#ffffff" : lit ? bossColor : "#4a4038";
 
-      ctx.save();
-      // metal bezel
+    ctx.save();
+    if (isKeeper) {
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, r + 3, 0, Math.PI * 2);
-      ctx.strokeStyle = shade(theme.rail, -0.35);
-      ctx.lineWidth = 4;
+      ctx.arc(pos.x, pos.y, r + 8, 0, Math.PI * 2);
+      ctx.strokeStyle = shade("#c73a45", -0.2);
+      ctx.lineWidth = 2;
+      ctx.setLineDash([3, 4]);
       ctx.stroke();
-
-      // glossy dome
-      const grad = ctx.createRadialGradient(pos.x - r * 0.35, pos.y - r * 0.35, r * 0.15, pos.x, pos.y, r);
-      grad.addColorStop(0, shade(capColor, 0.55));
-      grad.addColorStop(0.55, capColor);
-      grad.addColorStop(1, shade(capColor, -0.35));
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-      ctx.fill();
-
-      // light ring
-      if (lit) {
-        ctx.shadowColor = theme.accentA;
-        ctx.shadowBlur = 8 + b.flash * 18;
-        ctx.strokeStyle = shade(theme.accentA, 0.4);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, r * 0.86, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      ctx.restore();
+      ctx.setLineDash([]);
     }
+
+    // metal bezel
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, r + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = shade(theme.rail, -0.35);
+    ctx.lineWidth = isKeeper ? 5 : 4;
+    ctx.stroke();
+
+    // glossy dome
+    const grad = ctx.createRadialGradient(pos.x - r * 0.35, pos.y - r * 0.35, r * 0.15, pos.x, pos.y, r);
+    grad.addColorStop(0, shade(capColor, 0.55));
+    grad.addColorStop(0.55, capColor);
+    grad.addColorStop(1, shade(capColor, -0.35));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (isKeeper) {
+      // a simple skull glyph so the boss target reads clearly even unlit
+      ctx.fillStyle = lit ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.28)";
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y - r * 0.15, r * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(pos.x - r * 0.28, pos.y + r * 0.05, r * 0.56, r * 0.28);
+      ctx.fillStyle = capColor;
+      ctx.beginPath();
+      ctx.arc(pos.x - r * 0.16, pos.y - r * 0.18, r * 0.1, 0, Math.PI * 2);
+      ctx.arc(pos.x + r * 0.16, pos.y - r * 0.18, r * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // light ring
+    if (lit) {
+      ctx.shadowColor = bossColor;
+      ctx.shadowBlur = 8 + b.flash * 18;
+      ctx.strokeStyle = shade(bossColor, 0.4);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r * 0.86, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   /** Classic triangular slingshot kicker with a rubber-band highlight edge. */
@@ -326,91 +355,172 @@ export class Renderer {
 
   /** Classic upright plastic drop target with a beveled highlight. */
   private drawDropTargets(game: Game, theme: Theme) {
-    const bank = game.table.dropBank;
-    if (!bank) return;
     const ctx = this.ctx;
-    for (const t of bank.targets) {
-      if (t.dropped) continue;
-      ctx.save();
-      ctx.translate(t.pos.x, t.pos.y);
-      ctx.rotate(t.angle);
-      const w = t.width;
-      const h = t.height;
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.fillRect(-w / 2 - 1, -h / 2 - 1 + 1.5, w + 2, h + 2);
-      const grad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
-      grad.addColorStop(0, shade(theme.accentA, 0.35));
-      grad.addColorStop(1, shade(theme.accentA, -0.25));
-      ctx.fillStyle = grad;
-      ctx.fillRect(-w / 2, -h / 2, w, h);
-      ctx.strokeStyle = shade(theme.accentA, -0.5);
-      ctx.lineWidth = 1;
-      ctx.strokeRect(-w / 2, -h / 2, w, h);
-      ctx.restore();
+    for (const bank of game.table.dropBanks) {
+      for (const t of bank.targets) {
+        if (t.dropped) continue;
+        ctx.save();
+        ctx.translate(t.pos.x, t.pos.y);
+        ctx.rotate(t.angle);
+        const w = t.width;
+        const h = t.height;
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fillRect(-w / 2 - 1, -h / 2 - 1 + 1.5, w + 2, h + 2);
+        const grad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
+        grad.addColorStop(0, shade(theme.accentA, 0.35));
+        grad.addColorStop(1, shade(theme.accentA, -0.25));
+        ctx.fillStyle = grad;
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.strokeStyle = shade(theme.accentA, -0.5);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        ctx.restore();
+      }
+    }
+  }
+
+  /** Arrow targets, lock targets, and plain standups — each bank rendered per its role. */
+  private drawStandupBanks(game: Game, theme: Theme) {
+    const ctx = this.ctx;
+    for (const bank of game.table.standupBanks) {
+      for (const t of bank.targets) {
+        const w = t.width;
+        const h = t.height;
+        ctx.save();
+        ctx.translate(t.pos.x, t.pos.y);
+        ctx.rotate(t.angle);
+
+        if (bank.role === "arrow") {
+          const color = t.lit ? "#8ee666" : "#3a4a30";
+          ctx.fillStyle = "rgba(0,0,0,0.3)";
+          ctx.beginPath();
+          ctx.moveTo(0, -h / 2 + 1.5);
+          ctx.lineTo(w / 2 + 1.5, h / 2 + 1.5);
+          ctx.lineTo(-w / 2 - 1.5, h / 2 + 1.5);
+          ctx.closePath();
+          ctx.fill();
+          if (t.lit || t.flash > 0) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 6 + t.flash * 14;
+          }
+          ctx.fillStyle = t.flash > 0 ? "#ffffff" : color;
+          ctx.beginPath();
+          ctx.moveTo(0, -h / 2);
+          ctx.lineTo(w / 2, h / 2);
+          ctx.lineTo(-w / 2, h / 2);
+          ctx.closePath();
+          ctx.fill();
+        } else if (bank.role === "lock") {
+          const disabled = !bank.enabled;
+          const color = t.lit ? "#ffd23f" : disabled ? "#3a342c" : "#8a6a2a";
+          ctx.globalAlpha = disabled ? 0.5 : 1;
+          if (t.lit || t.flash > 0) {
+            ctx.shadowColor = "#ffd23f";
+            ctx.shadowBlur = 6 + t.flash * 14;
+          }
+          ctx.strokeStyle = t.flash > 0 ? "#ffffff" : color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, -h / 2, w * 0.28, Math.PI, 0);
+          ctx.stroke();
+          ctx.fillStyle = t.flash > 0 ? "#ffffff" : color;
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+          ctx.globalAlpha = 1;
+        } else {
+          const color = t.lit ? theme.accentB : shade(theme.accentB, -0.5);
+          ctx.fillStyle = "rgba(0,0,0,0.3)";
+          ctx.fillRect(-w / 2 - 1, -h / 2 + 1.5, w + 2, h + 2);
+          if (t.flash > 0) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 10 * t.flash;
+          }
+          ctx.fillStyle = t.flash > 0 ? "#ffffff" : color;
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+        }
+        ctx.restore();
+      }
     }
   }
 
   /** Classic glowing plastic ramp track, rendered as a smooth lit tube. */
-  private drawRamp(game: Game, theme: Theme) {
-    const ramp = game.table.ramp;
-    if (!ramp) return;
+  private drawRamps(game: Game, theme: Theme) {
     const ctx = this.ctx;
-    const pts: Vec2[] = [];
-    for (let i = 0; i <= 24; i++) pts.push(ramp.pointAt(i / 24));
-    const glowColor = ramp.flash > 0 ? "#ffffff" : theme.accentC;
+    for (const ramp of game.table.ramps) {
+      const pts: Vec2[] = [];
+      for (let i = 0; i <= 24; i++) pts.push(ramp.pointAt(i / 24));
+      const glowColor = ramp.flash > 0 ? "#ffffff" : theme.accentC;
 
-    ctx.save();
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    poly(ctx, pts);
-    ctx.strokeStyle = shade(glowColor, -0.5);
-    ctx.lineWidth = 9;
-    ctx.stroke();
+      ctx.save();
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      poly(ctx, pts);
+      ctx.strokeStyle = shade(glowColor, -0.5);
+      ctx.lineWidth = 9;
+      ctx.stroke();
 
-    poly(ctx, pts);
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur = 6 + ramp.flash * 18;
-    ctx.strokeStyle = glowColor;
-    ctx.lineWidth = 6;
-    ctx.stroke();
+      poly(ctx, pts);
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 6 + ramp.flash * 18;
+      ctx.strokeStyle = glowColor;
+      ctx.lineWidth = 6;
+      ctx.stroke();
 
-    poly(ctx, pts);
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = shade(glowColor, 0.5);
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
+      poly(ctx, pts);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = shade(glowColor, 0.5);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(ramp.def.entry.x, ramp.def.entry.y, ramp.def.entryRadius ?? 20, 0, Math.PI * 2);
-    ctx.strokeStyle = theme.accentC;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ramp.def.entry.x, ramp.def.entry.y, ramp.def.entryRadius ?? 20, 0, Math.PI * 2);
+      ctx.strokeStyle = theme.accentC;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
   }
 
-  /** Classic round flush lane-light insert. */
+  /** Classic round flush lane-light insert. The gate gets a bigger arched-door treatment. */
   private drawRollovers(game: Game, theme: Theme, now: number) {
     const ctx = this.ctx;
     const skillActive = game.skillShotDeadline > 0 && now <= game.skillShotDeadline;
     for (const r of game.table.rollovers) {
+      const isGate = game.table.def.gateId === r.id;
       const isSkillLit = r.skillShot && skillActive && r.lit;
-      const color = r.lit ? (isSkillLit ? "#ffd23f" : theme.accentB) : "#2a2a30";
+      const color = r.lit ? (isGate ? "#8ee6ff" : isSkillLit ? "#ffd23f" : theme.accentB) : "#2a2a30";
       const pos = r.body.position;
+      const radius = isGate ? 13 : 8;
       ctx.save();
+
+      if (isGate) {
+        // stone archway frame, always visible so the gate reads before it lights up
+        const frameR = radius + 5;
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, frameR, Math.PI, 0);
+        ctx.lineTo(pos.x + frameR, pos.y + 7);
+        ctx.lineTo(pos.x - frameR, pos.y + 7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#8a7248";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
       if (r.lit) {
         ctx.shadowColor = color;
-        ctx.shadowBlur = 9 + r.flash * 14;
+        ctx.shadowBlur = (isGate ? 12 : 9) + r.flash * 14;
       }
-      const grad = ctx.createRadialGradient(pos.x, pos.y, 1, pos.x, pos.y, 9);
+      const grad = ctx.createRadialGradient(pos.x, pos.y, 1, pos.x, pos.y, radius);
       grad.addColorStop(0, shade(color, 0.5));
       grad.addColorStop(1, color);
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+      ctx.arc(pos.x, pos.y, radius - 1, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = shade(color, -0.4);
       ctx.lineWidth = 1.5;

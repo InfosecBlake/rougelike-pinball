@@ -8,7 +8,8 @@ export type ObjectiveType =
   | "clear-drop-targets"
   | "spin-spinner"
   | "run-ramp"
-  | "grand-finale";
+  | "grand-finale"
+  | "dungeon-keeper";
 
 export interface Objective {
   type: ObjectiveType;
@@ -50,6 +51,7 @@ export interface DropTargetBankDef {
   id: string;
   targets: DropTargetDef[];
   bonus: number;
+  rewardLabel?: string;
 }
 
 export interface RolloverDef {
@@ -59,6 +61,7 @@ export interface RolloverDef {
   score: number;
   skillShot?: boolean;
   label: string;
+  lit?: boolean;
 }
 
 export interface RampDef {
@@ -71,6 +74,26 @@ export interface RampDef {
   minEntrySpeed: number;
   score: number;
   label: string;
+}
+
+/** A standup target never drops or disables collision — it just tracks a lit state once hit. */
+export interface StandupTargetDef {
+  id: string;
+  pos: Vec2;
+  width?: number;
+  height?: number;
+  angle?: number;
+}
+
+export type StandupRole = "arrow" | "lock" | "standup";
+
+export interface StandupBankDef {
+  id: string;
+  role: StandupRole;
+  targets: StandupTargetDef[];
+  score: number;
+  /** Lock banks start disabled until another feature (e.g. the arrow bank) enables them. */
+  enabled?: boolean;
 }
 
 export interface LevelTheme {
@@ -92,8 +115,13 @@ export interface LevelDef {
   theme: LevelTheme;
   bumpers: BumperDef[];
   spinner?: SpinnerDef;
-  dropBank?: DropTargetBankDef;
-  ramp?: RampDef;
+  dropBanks?: DropTargetBankDef[];
+  ramps?: RampDef[];
+  standupBanks?: StandupBankDef[];
+  /** A special large bumper-style boss target, separate from the regular bumpers array. */
+  keeper?: BumperDef;
+  /** id of the rollover in `rollovers` that acts as the multiball-release gate (starts unlit). */
+  gateId?: string;
   rollovers: RolloverDef[];
   objective: Objective;
 }

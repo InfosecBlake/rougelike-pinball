@@ -16,12 +16,14 @@ export class DropTargetBank {
   id: string;
   targets: DropTarget[];
   bonus: number;
+  rewardLabel?: string;
   resetTimer = 0;
   score = 750;
 
   constructor(def: DropTargetBankDef) {
     this.id = def.id;
     this.bonus = def.bonus;
+    this.rewardLabel = def.rewardLabel;
     this.targets = def.targets.map((t) => {
       const width = t.width ?? 34;
       const height = t.height ?? 12;

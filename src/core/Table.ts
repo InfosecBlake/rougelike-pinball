@@ -28,6 +28,7 @@ import { Bumper } from "../entities/Bumper";
 import { Slingshot } from "../entities/Slingshot";
 import { Spinner } from "../entities/Spinner";
 import { DropTargetBank } from "../entities/DropTargetBank";
+import { StandupBank } from "../entities/StandupBank";
 import { Ramp } from "../entities/Ramp";
 import { Rollover } from "../entities/Rollover";
 import { Launcher } from "../entities/Launcher";
@@ -38,10 +39,12 @@ export class Table {
   leftFlipper: Flipper;
   rightFlipper: Flipper;
   bumpers: Bumper[] = [];
+  keeper: Bumper | null = null;
   slingshots: Slingshot[] = [];
   spinner: Spinner | null = null;
-  dropBank: DropTargetBank | null = null;
-  ramp: Ramp | null = null;
+  dropBanks: DropTargetBank[] = [];
+  standupBanks: StandupBank[] = [];
+  ramps: Ramp[] = [];
   rollovers: Rollover[] = [];
   launcher: Launcher;
   drainSensor: Matter.Body;
@@ -85,19 +88,32 @@ export class Table {
       this.staticBodies.push(b.body);
     }
 
+    if (def.keeper) {
+      this.keeper = new Bumper(def.keeper);
+      this.staticBodies.push(this.keeper.body);
+    }
+
     if (def.spinner) {
       this.spinner = new Spinner(def.spinner);
       this.staticBodies.push(this.spinner.body);
     }
 
-    if (def.dropBank) {
-      this.dropBank = new DropTargetBank(def.dropBank);
-      this.staticBodies.push(...this.dropBank.bodies);
+    for (const dbd of def.dropBanks ?? []) {
+      const bank = new DropTargetBank(dbd);
+      this.dropBanks.push(bank);
+      this.staticBodies.push(...bank.bodies);
     }
 
-    if (def.ramp) {
-      this.ramp = new Ramp(def.ramp);
-      this.staticBodies.push(this.ramp.entrySensor);
+    for (const sbd of def.standupBanks ?? []) {
+      const bank = new StandupBank(sbd);
+      this.standupBanks.push(bank);
+      this.staticBodies.push(...bank.bodies);
+    }
+
+    for (const rd of def.ramps ?? []) {
+      const ramp = new Ramp(rd);
+      this.ramps.push(ramp);
+      this.staticBodies.push(ramp.entrySensor);
     }
 
     for (const rd of def.rollovers) {
@@ -115,10 +131,12 @@ export class Table {
     this.leftFlipper.update();
     this.rightFlipper.update();
     for (const b of this.bumpers) b.update(dt);
+    this.keeper?.update(dt);
     for (const s of this.slingshots) s.update(dt);
     this.spinner?.update(dt);
-    this.dropBank?.update(dt);
-    this.ramp?.update(dt);
+    for (const bank of this.dropBanks) bank.update(dt);
+    for (const bank of this.standupBanks) bank.update(dt);
+    for (const ramp of this.ramps) ramp.update(dt);
     for (const r of this.rollovers) r.update(dt);
     this.launcher.update(now);
   }

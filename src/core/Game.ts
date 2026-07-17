@@ -69,6 +69,10 @@ export class Game {
   levelCompleteAt = 0;
   shakeUntil = 0;
 
+  lockCount = 0;
+  gateTriggered = false;
+  wizardModeReady = false;
+
   popups: Popup[] = [];
   private pendingRelights: { id: string; at: number }[] = [];
 
@@ -153,6 +157,9 @@ export class Game {
     this.multiballReady = false;
     this.pendingRelights = [];
     this.objectiveProgress = 0;
+    this.lockCount = 0;
+    this.gateTriggered = false;
+    this.wizardModeReady = false;
   }
 
   private bumperHitSet = new Set<string>();
@@ -290,8 +297,8 @@ export class Game {
   private updateCapturedBalls(dt: number) {
     for (const ball of this.balls) {
       if (!ball.captured) continue;
-      const ramp = this.table.ramp;
-      if (!ramp || ramp.id !== ball.captured.rampId) {
+      const ramp = this.table.ramps.find((r) => r.id === ball.captured!.rampId);
+      if (!ramp) {
         ball.captured = null;
         continue;
       }
@@ -339,11 +346,15 @@ export class Game {
 
     switch (kind) {
       case "bumper": {
-        const bumper = this.table.bumpers.find((b) => b.id === id);
+        const bumper = this.table.bumpers.find((b) => b.id === id) ?? (this.table.keeper?.id === id ? this.table.keeper : undefined);
         if (!bumper) return;
         bumper.hit(ball.body);
         this.sfx.bumper();
         this.awardScore(bumper.score, bumper.body.position);
+        if (this.table.keeper && bumper.id === this.table.keeper.id) {
+          if (this.wizardModeReady) this.triggerWizardMode(now);
+          break;
+        }
         this.bumperHitSet.add(id);
         if (this.multiballReady) this.triggerMultiball(now);
         this.checkObjective(now);
@@ -359,8 +370,8 @@ export class Game {
       }
       case "target": {
         const [bankId, targetId] = rest;
-        const bank = this.table.dropBank;
-        if (!bank || bank.id !== bankId) return;
+        const bank = this.table.dropBanks.find((b) => b.id === bankId);
+        if (!bank) return;
         const wasAllDropped = bank.allDropped;
         if (bank.drop(targetId)) {
           this.sfx.target();
@@ -368,7 +379,30 @@ export class Game {
           if (!wasAllDropped && bank.allDropped) {
             this.dropClears++;
             this.awardScore(bank.bonus, ball.position);
-            this.addPopup(`WALL SHATTERED +${bank.bonus}`, ball.position, "#ffd23f");
+            const label = bank.rewardLabel ? `${bank.rewardLabel} +${bank.bonus}` : `WALL SHATTERED +${bank.bonus}`;
+            this.addPopup(label, ball.position, "#ffd23f");
+          }
+          this.checkObjective(now);
+        }
+        break;
+      }
+      case "standup": {
+        const [bankId, targetId] = rest;
+        const bank = this.table.standupBanks.find((b) => b.id === bankId);
+        if (!bank || !bank.enabled) return;
+        const wasAllLit = bank.allLit;
+        if (bank.hit(targetId)) {
+          this.sfx.target();
+          this.awardScore(bank.score, ball.position);
+          if (bank.role === "lock") {
+            this.lockBall(ball, now);
+            return;
+          }
+          if (bank.role === "arrow" && !wasAllLit && bank.allLit) {
+            this.awardScore(2000, ball.position);
+            this.addPopup("LOCKS ENABLED!", ball.position, "#a86bff");
+            const lockBank = this.table.standupBanks.find((b) => b.role === "lock");
+            if (lockBank) lockBank.enabled = true;
           }
           this.checkObjective(now);
         }
@@ -387,6 +421,11 @@ export class Game {
       case "rollover": {
         const rollover = this.table.rollovers.find((r) => r.id === id);
         if (!rollover || !rollover.lit) return;
+        if (this.table.def.gateId && rollover.id === this.table.def.gateId) {
+          rollover.flash = 1;
+          if (!this.gateTriggered) this.triggerGateMultiball(now);
+          break;
+        }
         rollover.lit = false;
         rollover.flash = 1;
         this.sfx.rollover();
@@ -407,8 +446,8 @@ export class Game {
         break;
       }
       case "ramp": {
-        const ramp = this.table.ramp;
-        if (!ramp || ramp.id !== id) return;
+        const ramp = this.table.ramps.find((r) => r.id === id);
+        if (!ramp) return;
         if (!ramp.canTrigger(now, ball.speed)) return;
         ramp.trigger(now);
         ball.captured = { rampId: ramp.id, t: 0, duration: 650 };
@@ -424,6 +463,46 @@ export class Game {
         break;
       }
     }
+  }
+
+  /** Locks the current ball out of play and serves a fresh one, without costing a life. */
+  private lockBall(ball: Ball, now: number) {
+    this.removeBall(ball);
+    this.lockCount++;
+    this.sfx.ballSave();
+    this.addPopup(`BALL LOCKED (${this.lockCount}/3)`, LAUNCHER_BALL_START, "#a86bff");
+    if (this.lockCount >= 3 && this.table.def.gateId) {
+      const gate = this.table.rollovers.find((r) => r.id === this.table.def.gateId);
+      if (gate) gate.lit = true;
+      this.addPopup("THE GATE OPENS!", { x: 250, y: 150 }, "#ffd23f");
+    }
+    this.checkObjective(now);
+    if (this.balls.length === 0) {
+      this.state = "serve";
+      this.spawnBall();
+    }
+  }
+
+  private triggerGateMultiball(now: number) {
+    this.gateTriggered = true;
+    this.wizardModeReady = true;
+    this.sfx.multiball();
+    this.addPopup("MULTIBALL! FIND THE KEEPER", { x: 250, y: 260 }, "#ff5a3d");
+    this.spawnBall({ x: 210, y: 210 });
+    this.spawnBall({ x: 250, y: 210 });
+    this.spawnBall({ x: 290, y: 210 });
+    for (const b of this.balls.slice(-3)) {
+      Matter.Body.setVelocity(b.body, { x: (Math.random() - 0.5) * 3, y: 2 + Math.random() });
+    }
+    this.checkObjective(now);
+  }
+
+  private triggerWizardMode(now: number) {
+    this.wizardModeReady = false;
+    this.score += 10000;
+    if (this.table.keeper) this.addPopup("WIZARD MODE! +10000", this.table.keeper.body.position, "#ffd23f");
+    this.sfx.levelComplete();
+    this.completeLevel(now);
   }
 
   private triggerMultiball(now: number) {
@@ -508,14 +587,19 @@ export class Game {
         progress = this.table.spinner?.spins ?? 0;
         break;
       case "run-ramp":
-        progress = this.table.ramp?.runs ?? 0;
+        progress = this.table.ramps.reduce((sum, r) => sum + r.runs, 0);
         break;
       case "grand-finale":
         progress = this.score - this.levelStartScore;
         break;
+      case "dungeon-keeper": {
+        const arrowBank = this.table.standupBanks.find((b) => b.role === "arrow");
+        progress = (arrowBank?.litCount ?? 0) + this.lockCount + (this.gateTriggered ? 1 : 0);
+        break;
+      }
     }
     this.objectiveProgress = Math.min(progress, obj.target);
-    if (progress >= obj.target) this.completeLevel(now);
+    if (obj.type !== "dungeon-keeper" && progress >= obj.target) this.completeLevel(now);
   }
 
   private completeLevel(now: number) {
@@ -557,6 +641,16 @@ export class Game {
     this.popups.push({ text, x: pos.x, y: pos.y, born: performance.now(), color });
   }
 
+  private dungeonKeeperLabel(): string {
+    const arrowBank = this.table.standupBanks.find((b) => b.role === "arrow");
+    const arrowTotal = arrowBank?.targets.length ?? 5;
+    const arrowsLit = arrowBank?.litCount ?? 0;
+    if (arrowsLit < arrowTotal) return `Light the arrow targets (${arrowsLit}/${arrowTotal})`;
+    if (this.lockCount < 3) return `Shoot the lock targets (${this.lockCount}/3)`;
+    if (!this.gateTriggered) return "Shoot the gate to start multiball!";
+    return "Find the Dungeon Keeper!";
+  }
+
   private hudData() {
     const obj = this.table.def.objective;
     return {
@@ -566,7 +660,7 @@ export class Game {
       levelCount: LEVELS.length,
       levelTitle: this.table.def.title,
       levelSubtitle: this.table.def.subtitle,
-      objectiveLabel: obj.label,
+      objectiveLabel: obj.type === "dungeon-keeper" ? this.dungeonKeeperLabel() : obj.label,
       objectiveProgress: this.objectiveProgress,
       objectiveTarget: obj.target,
       ballsRemaining: this.ballsRemaining,
